@@ -6174,12 +6174,9 @@ int fimc_is_sec_run_fw_sel(struct device *dev, int position)
 #endif
 	/* Check reload cal data enabled */
 	if (!sysfs_finfo.is_check_cal_reload) {
-		if (fimc_is_sec_file_exist("/data/media/0/")) {
-			/* Check reload cal data enabled */
-			fimc_is_sec_check_reload(core);
-			sysfs_finfo.is_check_cal_reload = true;
-		}
+		fimc_is_sec_check_reload(core);
 	}
+	sysfs_finfo.is_check_cal_reload = true;
 
 #if defined(CONFIG_CAMERA_EEPROM_SUPPORT_FRONT) || defined(CONFIG_CAMERA_OTPROM_SUPPORT_FRONT)
 	if (position == SENSOR_POSITION_FRONT) {

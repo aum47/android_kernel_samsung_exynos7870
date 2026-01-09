@@ -271,6 +271,7 @@ int ist30xx_set_input_device(struct ist30xx_data *data)
 	input_set_capability(data->input_dev, EV_KEY, KEY_BLACK_UI_GESTURE);
 	input_set_capability(data->input_dev, EV_KEY, KEY_MUTE);
 	input_set_capability(data->input_dev, EV_KEY, KEY_SYSRQ);
+	input_set_capability(data->input_dev, EV_KEY, KEY_WAKEUP);
 
 	input_set_drvdata(data->input_dev, data);
 	ret = input_register_device(data->input_dev);
@@ -372,9 +373,9 @@ void ist30xx_special_cmd(struct ist30xx_data *data, int cmd)
 		data->scrub_x = data->g_reg.b.evt_x;
 		data->scrub_y = data->g_reg.b.evt_y;
 
-		input_report_key(data->input_dev, KEY_BLACK_UI_GESTURE, 1);
+		input_report_key(data->input_dev, KEY_WAKEUP, 1);
 		input_sync(data->input_dev);
-		input_report_key(data->input_dev, KEY_BLACK_UI_GESTURE, 0);
+		input_report_key(data->input_dev, KEY_WAKEUP, 0);
 		input_sync(data->input_dev);
 	}
 
@@ -1985,6 +1986,7 @@ static void ist30xx_shutdown(struct i2c_client *client)
 }
 
 #ifdef CONFIG_FB
+
 int fb_notifier_callback(struct notifier_block *self,
 				unsigned long event, void *data)
 {
@@ -1993,24 +1995,44 @@ int fb_notifier_callback(struct notifier_block *self,
 
 	if (evdata && evdata->data && event == FB_EVENT_BLANK) {
 		int *blank = evdata->data;
+		bool was_aod = tc_data->aod;
+		
+		mutex_lock(&tc_data->aod_lock);
+		
 		switch (*blank) {
 		case FB_BLANK_UNBLANK:
-		case FB_BLANK_NORMAL:
+			/* Screen fully on - exit AOD if we were in it */
+			tc_data->aod = false;
+			if (was_aod) {
+				tsp_info("Exiting AOD mode, screen fully ON\n");
+			}
+			ist30xx_ts_open(tc_data->input_dev);
+			break;
+			
 		case FB_BLANK_VSYNC_SUSPEND:
 		case FB_BLANK_HSYNC_SUSPEND:
-		        ist30xx_ts_open(tc_data->input_dev);
-			break;
-		case FB_BLANK_POWERDOWN:
-		#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
-			if(!dt2w_is_enabled()){
-				ist30xx_ts_close(tc_data->input_dev);
-				break;
+			/* Entering AOD mode */
+			if (!was_aod) {
+				tsp_info("Entering AOD mode\n");
 			}
-		#endif	
+			tc_data->aod = true;
+			ist30xx_ts_open(tc_data->input_dev);
+			break;
+			
+		case FB_BLANK_POWERDOWN:
+			/* Screen completely off */
+			tc_data->aod = false;
+			if (was_aod) {
+				tsp_info("Exiting AOD mode, screen OFF\n");
+			}
+			/* Keep touchscreen open for wake gestures */
+			break;
+			
 		default:
-			/* Don't handle what we don't understand */
 			break;
 		}
+		
+		mutex_unlock(&tc_data->aod_lock);
 	}
 
 	return 0;
