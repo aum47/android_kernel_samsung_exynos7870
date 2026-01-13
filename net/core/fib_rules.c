@@ -415,6 +415,7 @@ static int fib_nl_newrule(struct sk_buff *skb, struct nlmsghdr* nlh)
 			unresolved = 1;
 	} else if (rule->action == FR_ACT_GOTO)
 		goto errout_free;
+	
 
 	if (tb[FRA_UID_RANGE]) {
 		if (current_user_ns() != net->user_ns) {
@@ -509,6 +510,7 @@ static int fib_nl_delrule(struct sk_buff *skb, struct nlmsghdr* nlh)
 	err = validate_rulemsg(frh, tb, ops);
 	if (err < 0)
 		goto errout;
+	
 
 	if (tb[FRA_UID_RANGE]) {
 		range = nla_get_kuid_range(tb);
@@ -631,7 +633,7 @@ static int fib_nl_fill_rule(struct sk_buff *skb, struct fib_rule *rule,
 
 	frh = nlmsg_data(nlh);
 	frh->family = ops->family;
-	frh->table = rule->table < 256 ? rule->table : RT_TABLE_COMPAT;
+	frh->table = rule->table;
 	if (nla_put_u32(skb, FRA_TABLE, rule->table))
 		goto nla_put_failure;
 	if (nla_put_u32(skb, FRA_SUPPRESS_PREFIXLEN, rule->suppress_prefixlen))
@@ -755,7 +757,7 @@ static void notify_rule_change(int event, struct fib_rule *rule,
 {
 	struct net *net;
 	struct sk_buff *skb;
-	int err = -ENOMEM;
+	int err = -ENOBUFS;
 
 	net = ops->fro_net;
 	skb = nlmsg_new(fib_rule_nlmsg_size(ops, rule), GFP_KERNEL);

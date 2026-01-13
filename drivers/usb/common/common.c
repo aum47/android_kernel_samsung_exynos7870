@@ -50,7 +50,6 @@ static const char *const speed_names[] = {
 	[USB_SPEED_HIGH] = "high-speed",
 	[USB_SPEED_WIRELESS] = "wireless",
 	[USB_SPEED_SUPER] = "super-speed",
-	[USB_SPEED_SUPER_PLUS] = "super-speed-plus",
 };
 
 const char *usb_speed_string(enum usb_device_speed speed)
@@ -89,6 +88,26 @@ static const char *const usb_dr_modes[] = {
 	[USB_DR_MODE_PERIPHERAL]	= "peripheral",
 	[USB_DR_MODE_OTG]		= "otg",
 };
+
+/**
+ * of_usb_get_suspend_clk_freq - Get suspend clock frequency
+ *
+ * USB3 core needs 16KHz clock for a small part that operates
+ * when the SS PHY is in its lowest power (P3) state.
+ * USB3 core receives suspend clock and divides it to make 16KHz clock.
+ */
+unsigned int of_usb_get_suspend_clk_freq(struct device_node *np)
+{
+	unsigned int freq;
+	int err;
+
+	err = of_property_read_u32(np, "suspend_clk_freq", &freq);
+	if (err < 0)
+		return 0;
+
+	return freq;
+}
+EXPORT_SYMBOL_GPL(of_usb_get_suspend_clk_freq);
 
 /**
  * of_usb_get_dr_mode - Get dual role mode for given device_node

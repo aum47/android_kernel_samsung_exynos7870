@@ -2052,12 +2052,7 @@ retry_open:
 	}
 
 	if (tty) {
-		retval = tty_lock_interruptible(tty);
-		if (retval) {
-			if (retval == -EINTR)
-				retval = -ERESTARTSYS;
-			goto err_unref;
-		}
+		tty_lock(tty);
 		retval = tty_reopen(tty);
 		if (retval < 0) {
 			tty_unlock(tty);
@@ -2132,7 +2127,6 @@ retry_open:
 	return 0;
 err_unlock:
 	mutex_unlock(&tty_mutex);
-err_unref:
 	/* after locks to avoid deadlock */
 	if (!IS_ERR_OR_NULL(driver))
 		tty_driver_kref_put(driver);
@@ -2688,14 +2682,14 @@ out:
  *	@p: pointer to result
  *
  *	Obtain the modem status bits from the tty driver if the feature
- *	is supported. Return -ENOTTY if it is not available.
+ *	is supported. Return -EINVAL if it is not available.
  *
  *	Locking: none (up to the driver)
  */
 
 static int tty_tiocmget(struct tty_struct *tty, int __user *p)
 {
-	int retval = -ENOTTY;
+	int retval = -EINVAL;
 
 	if (tty->ops->tiocmget) {
 		retval = tty->ops->tiocmget(tty);
@@ -2713,7 +2707,7 @@ static int tty_tiocmget(struct tty_struct *tty, int __user *p)
  *	@p: pointer to desired bits
  *
  *	Set the modem status bits from the tty driver if the feature
- *	is supported. Return -ENOTTY if it is not available.
+ *	is supported. Return -EINVAL if it is not available.
  *
  *	Locking: none (up to the driver)
  */
@@ -2725,7 +2719,7 @@ static int tty_tiocmset(struct tty_struct *tty, unsigned int cmd,
 	unsigned int set, clear, val;
 
 	if (tty->ops->tiocmset == NULL)
-		return -ENOTTY;
+		return -EINVAL;
 
 	retval = get_user(val, p);
 	if (retval)
@@ -3091,10 +3085,7 @@ struct tty_struct *alloc_tty_struct(struct tty_driver *driver, int idx)
 
 	kref_init(&tty->kref);
 	tty->magic = TTY_MAGIC;
-	if (tty_ldisc_init(tty)) {
-		kfree(tty);
-		return NULL;
-	}
+	tty_ldisc_init(tty);
 	tty->session = NULL;
 	tty->pgrp = NULL;
 	mutex_init(&tty->legacy_mutex);
