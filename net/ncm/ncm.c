@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef CONFIG_KNOX_NPA
 /* START_OF_KNOX_NPA */
 
 #include <linux/kernel.h>
@@ -1038,3 +1039,4 @@ MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Network Context Metadata Module:");
 
 /* END_OF_KNOX_NPA */
+#endif
