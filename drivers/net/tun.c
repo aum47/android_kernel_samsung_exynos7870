@@ -80,6 +80,7 @@
 #include <net/rtnetlink.h>
 #include <net/sock.h>
 #include <linux/seq_file.h>
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 #include <linux/types.h>
 #include <linux/udp.h>
@@ -90,6 +91,7 @@
 #define META_MARK_BASE_LOWER 100
 #define META_MARK_BASE_UPPER 500
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 #include <asm/uaccess.h>
 
@@ -124,6 +126,7 @@ do {								\
 
 #define GOODCOPY_LEN 128
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 /* The KNOX framework marks packets intended to a VPN client for special processing differently.
  * The marked packets hit special IP table rules and are routed back to user space using the TUN driver
@@ -145,6 +148,7 @@ struct knox_meta_param {
 #define TUN_META_HDR_SZ sizeof(struct knox_meta_param)
 #define TUN_META_MARK_OFFSET offsetof(struct knox_meta_param, uid)
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 #define FLT_EXACT_COUNT 8
 struct tap_filter {
@@ -1270,6 +1274,7 @@ static ssize_t tun_chr_aio_write(struct kiocb *iocb, const struct iovec *iv,
 	return result;
 }
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 
 /* KNOX VPN packets have extra bytes because they carry meta information by default
@@ -1330,6 +1335,7 @@ static int knoxvpn_process_uidpid(struct tun_struct *tun, struct sk_buff *skb,
 }
 
 // ------------- END of KNOX_VPN ------------------//
+#endif
 
 /* Put packet to the user space buffer */
 static ssize_t tun_put_user(struct tun_struct *tun,
@@ -1410,11 +1416,13 @@ static ssize_t tun_put_user(struct tun_struct *tun,
 		total += vnet_hdr_sz;
 	}
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 	if (knoxvpn_process_uidpid(tun, skb, iv, &len, &total) < 0) {
 		return -EINVAL;
 	}
 // ------------- END of KNOX_VPN ------------------//
+#endif
 
 	copied = total;
 	len = min_t(int, skb->len + vlan_hlen, len);
@@ -1633,6 +1641,7 @@ static int tun_flags(struct tun_struct *tun)
 {
 	int flags = 0;
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 	/* Checks if meta header is enabled so that
 	 * packets will be prepended with meta data(UID/PID)
@@ -1641,6 +1650,7 @@ static int tun_flags(struct tun_struct *tun)
 		flags |= IFF_META_HDR;
 	}
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 	if (tun->flags & TUN_TUN_DEV)
 		flags |= IFF_TUN;
@@ -1828,6 +1838,7 @@ static int tun_set_iff(struct net *net, struct file *file, struct ifreq *ifr)
 
 	tun_debug(KERN_INFO, tun, "tun_set_iff\n");
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 	if (ifr->ifr_flags & IFF_META_HDR) {
 		tun->flags |= TUN_META_HDR;
@@ -1835,6 +1846,7 @@ static int tun_set_iff(struct net *net, struct file *file, struct ifreq *ifr)
 		tun->flags &= ~TUN_META_HDR;
 	}
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 	if (ifr->ifr_flags & IFF_NO_PI)
 		tun->flags |= TUN_NO_PI;
@@ -2010,11 +2022,13 @@ static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
 	int vnet_hdr_sz;
 	unsigned int ifindex;
 	int ret;
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 	int knox_flag = 0;
 	int tun_meta_param;
 	int tun_meta_value;
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 #ifdef CONFIG_ANDROID_PARANOID_NETWORK
 	if (cmd != TUNGETIFF && !capable(CAP_NET_ADMIN)) {
@@ -2033,12 +2047,14 @@ static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
 		 * This is needed because we never checked for invalid flags on
 		 * TUNSETIFF. */
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 		knox_flag |= IFF_META_HDR;
 		return put_user(IFF_TUN | IFF_TAP | IFF_NO_PI | IFF_ONE_QUEUE |
 				IFF_VNET_HDR | IFF_MULTI_QUEUE | knox_flag,
 				(unsigned int __user*)argp);
 // ------------- END of KNOX_VPN -------------------//
+#endif
 	} else if (cmd == TUNSETQUEUE)
 		return tun_set_queue(file, &ifr);
 
@@ -2227,6 +2243,7 @@ static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
 		tun->vnet_hdr_sz = vnet_hdr_sz;
 		break;
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 	case TUNGETMETAPARAM:
 
@@ -2258,6 +2275,7 @@ static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
 		}
 		break;
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 	case TUNATTACHFILTER:
 		/* Can be set only for TAPs */

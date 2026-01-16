@@ -93,6 +93,7 @@
 #define TUN_F_TSO_ECN	0x08	/* I can handle TSO with ECN bits. */
 #define TUN_F_UFO	0x10	/* I can handle UFO packets */
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 #define TUN_META_HDR	0x0800
 #define TUNGETMETAPARAM _IOR('T', 218, int)
@@ -101,6 +102,7 @@
 #define TUN_GET_META_MARK_OFFSET 1
 #define DEFAULT_IHL 5
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 /* Protocol info prepended to the packets (when IFF_NO_PI is not set) */
 #define TUN_PKT_STRIP	0x0001

@@ -36,12 +36,14 @@
 #include <linux/netfilter/x_tables.h>
 #include <linux/netfilter/xt_connmark.h>
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 #include <linux/types.h>
 #include <linux/tcp.h>
 #include <linux/ip.h>
 #include <net/ip.h>
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 MODULE_AUTHOR("Henrik Nordstrom <hno@marasystems.com>");
 MODULE_DESCRIPTION("Xtables: connection mark operations");
@@ -51,6 +53,7 @@ MODULE_ALIAS("ip6t_CONNMARK");
 MODULE_ALIAS("ipt_connmark");
 MODULE_ALIAS("ip6t_connmark");
 
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN ------------------//
 
 /* KNOX framework uses mark value 100 to 500
@@ -110,6 +113,7 @@ static unsigned int knoxvpn_uidpid(struct sk_buff *skb, u_int32_t newmark)
 }
 
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 static unsigned int
 connmark_tg(struct sk_buff *skb, const struct xt_action_param *par)
@@ -143,9 +147,11 @@ connmark_tg(struct sk_buff *skb, const struct xt_action_param *par)
 		newmark = (skb->mark & ~info->nfmask) ^
 		          (ct->mark & info->ctmask);
 		skb->mark = newmark;
+#ifdef CONFIG_KNOX_VPN
 // ------------- START of KNOX_VPN -----------------//
 		knoxvpn_uidpid(skb, newmark);
 // ------------- END of KNOX_VPN -------------------//
+#endif
 
 		break;
 	}
