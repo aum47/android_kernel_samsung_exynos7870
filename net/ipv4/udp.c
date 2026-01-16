@@ -1846,7 +1846,7 @@ int __udp4_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 			}
 		}
 		// KNOX NPA - END
-
+#endif
 		ret = udp_queue_rcv_skb(sk, skb);
 		sock_put(sk);
 		/* a return value > 0 means to resubmit the input, but
@@ -1932,7 +1932,7 @@ int __udp4_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 			}
 		}
 		// KNOX NPA - END
-
+#endif
 		ret = udp_queue_rcv_skb(sk, skb);
 		sock_put(sk);
 
